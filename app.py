@@ -1,10 +1,39 @@
-from flask import Flask
+from flask import Flask, request, abort
+import requests
 
 app = Flask(__name__)
 
+API_Key = "aa78d8dcce1009d15624839f84b4dce9"
 
-@app.route('/')
-def hello():
-    return {
-        "sample": "string"
-    }
+url = f"http://api.openweathermap.org/data/2.5/weather?appid={API_Key}"
+
+
+@app.route('/weather', methods=['GET'])
+def weather():
+    locale = request.args.get('locale')
+    response = requests.get(url + "&q=" + locale)
+    res = response.json()
+
+    app.logger.info(res)
+
+    # Checking if the city is found
+    if res["cod"] != "404" or res["cod"] != "400":
+        data = res["main"]
+
+        # Storing the live temperature data
+        live_temperature = data["temp"]
+
+        # Storing the live pressure data
+        live_pressure = data["pressure"]
+        desc = res["weather"]
+
+        # Storing the weather description
+        weather_description = desc[0]["description"]
+
+        return {
+            "temp": live_temperature,
+            "pressure": live_pressure,
+            "desc": weather_description
+        }
+
+    abort(500, 'Some error...')
